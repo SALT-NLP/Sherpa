@@ -1,0 +1,33 @@
+# Shared by every teacher: the frozen protocol, the student and the judge, and
+# the paper's 528 test problems x seven student preferences.
+version: 1
+protocol: ../protocol.yaml
+roles:
+  student:
+    model: qwen3-1.7b
+    endpoint_env: STUDENT_BASE_URL
+    key_env: STUDENT_API_KEY
+  judge:
+    model: qwen3.8-27b-fp8
+    endpoint_env: AUX_BASE_URL
+    key_env: AUX_API_KEY
+evaluation:
+  preferences:
+    - none
+    - attempt-diagnosis
+    - subgoal-decomposition
+    - contrastive-comparison
+    - causal-justification
+    - step-demonstration
+    - independent-verification
+  # Preferences reported as in-distribution (ID); the others are reported as OOD.
+  id_preferences: [none, attempt-diagnosis, subgoal-decomposition, contrastive-comparison]
+  attempts: 1
+  expected_questions: 528
+execution:
+  concurrency: 8
+  student_concurrency: 16
+  judge_concurrency: 16
+  episode_timeout_seconds: 600
+  episode_error_retries: 3
+  proxy: environment

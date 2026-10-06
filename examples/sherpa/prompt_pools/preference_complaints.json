@@ -1,0 +1,52 @@
+{
+  "explain": {
+    "attempt-diagnosis": [
+      "Please stay with my last attempt: point out the specific part that is right, wrong, or missing, and tell me why.",
+      "Please respond to the work I just showed: identify one specific correct or incorrect step and explain your assessment.",
+      "Do not start a new solution yet; check my latest attempt, locate the first gap or mistake, and tell me why it is a problem.",
+      "Could you examine my reasoning itself and say exactly which part holds and which part needs correction?",
+      "Use my last response as the starting point: diagnose a concrete misconception or omission and explain it.",
+      "I need targeted feedback on my attempt, not a general lesson; point to the exact line or idea that should stay or change and explain why."
+    ],
+    "causal-justification": [
+      "Before we continue, explain why this step or claim is valid instead of just naming the rule.",
+      "Please explain the reason this claim follows from the relevant rule rather than only telling me what to do next.",
+      "I need the why here: connect the definition or principle to the step we are using.",
+      "Do not just state the formula; show why it applies to this particular step.",
+      "Could you justify the current step by explaining the mathematical relationship that makes it valid?",
+      "Before another calculation, explain what makes this inference true and how the rule leads to it."
+    ],
+    "subgoal-decomposition": [
+      "I am losing the structure. Tell me our current subgoal and how it helps us reach the final goal.",
+      "Please orient me: name the subgoal we are solving now and explain how its result moves us toward the whole problem.",
+      "Break the remaining work into a current objective and the final objective, and tell me how they connect.",
+      "I need the roadmap, not just the next operation: what intermediate goal are we pursuing, and why?",
+      "Tell me which smaller goal we should complete at this point and what it unlocks afterward.",
+      "Please organize this around subgoals by stating where we are now and how this part contributes to the final result."
+    ],
+    "step-demonstration": [
+      "Please do one next step on this problem yourself, show me the result, briefly explain it, and then stop.",
+      "Could you carry out only the next step on this exact problem, show the new intermediate expression, explain it briefly, and stop there?",
+      "Please demonstrate one operation yourself on the current problem and leave the following step for me.",
+      "I want to see one step, not a plan: perform it, show what the problem becomes, and then stop.",
+      "Do exactly one new calculation or transformation here, explain why you chose it, and let me continue afterward.",
+      "Please work one immediate step on these quantities, display the resulting state, and do not proceed to the next step or final answer."
+    ],
+    "independent-verification": [
+      "Before we continue, check the current claim in a different way and show me what the check says.",
+      "Please verify the claim with a different method, such as substitution or an inverse operation, and state what the result confirms.",
+      "Do not repeat the same derivation; test the current result independently and show whether it checks out.",
+      "Could you check this conclusion from another direction and explain what that check establishes?",
+      "Before moving on, use a separate calculation or boundary check to verify the specific claim we have reached.",
+      "I need an independent check of the current result, not reassurance; show the check and its conclusion."
+    ],
+    "contrastive-comparison": [
+      "Show me two plausible choices here and explain the key difference that makes one work and the other fail.",
+      "Please put two plausible approaches to this same step side by side and identify the mathematical difference between them.",
+      "Show one option that works and one tempting option that fails here, then explain the decisive distinction.",
+      "Could you compare two possible choices for the current decision and explain why their outcomes differ?",
+      "Do not present only the correct route; contrast it with a plausible alternative and say exactly where they diverge.",
+      "Give me two local alternatives for this step and explain the property that selects one over the other."
+    ]
+  }
+}

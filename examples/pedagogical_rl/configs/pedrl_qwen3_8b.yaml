@@ -1,0 +1,260 @@
+# PedagogicalRL baseline on one node with eight GPUs.
+#
+# Controlled substitutions shared with Sherpa:
+#   Qwen3-8B rank-16 LoRA teacher, Qwen3-1.7B student, filtered MATH data,
+#   16 problems x 8 trajectories, 1500 rollout batches, ten teacher turns,
+#   and the common reasoning/output/end XML interface.
+#
+# PedagogicalRL itself remains native: GUIDED/ATTEMPTED assignment, native
+# teacher/student prompts, two whole-dialogue hard gates, eight final attempts,
+# its four scalar reward slots (format replaces the inactive thinking slot),
+# episode-level group normalization, PPO epsilon=.2, beta=.001 forward KL, and
+# mu=2 full-batch updates per sampled batch. There is no preference and no
+# pre-solve during training.
+#
+# Launch with examples/pedagogical_rl/scripts/run/qwen3.sh, which serves the
+# student locally and sets STUDENT_BASE_URL.
+
+experiment_name: pedagogical-rl
+trial_name: qwen3-8b
+seed: 42
+enable_offload: false
+dynamic_bs: false
+total_train_epochs: 1000
+# 1500 x 16 problems x 8 trajectories = 192,000 trajectories, the same sampled
+# data budget as Sherpa. PedagogicalRL's native mu=2 is retained, hence 3,000
+# policy updates.
+total_train_steps: 1500
+tokenizer_path: ${actor.path}
+
+workflow: examples.pedagogical_rl.workflow.PedagogicalRLWorkflow
+max_train_examples: -1
+debug_trace_dir: ""
+debug_trace_every_n_rollouts: 10
+
+student_model:
+  mode: api
+  base_url: ${oc.env:STUDENT_BASE_URL}
+  model: ${oc.env:STUDENT_MODEL,qwen3-1.7b}
+  api_key: ${oc.env:STUDENT_API_KEY,EMPTY}
+  timeout: 120
+  max_retries: 2
+  max_concurrent_calls: 32
+  top_k: 50
+  min_p: 0.0
+  extra_headers: {}
+  chat_template_kwargs:
+    enable_thinking: false
+
+judge_model:
+  # The rollout engine serves the frozen base Qwen3-8B with LoRA disabled.
+  # No external judge endpoint is contacted.
+  mode: self
+  base_url: ""
+  api_key: ""
+  max_concurrent_calls: 32
+  top_k: 50
+  min_p: 0.0
+  chat_template_kwargs:
+    enable_thinking: false
+
+generation:
+  # PedagogicalRL defaults to 15 combined messages. Both methods use the
+  # common budget of ten teacher actions.
+  max_teacher_turns: 10
+  max_tokens_in_conversation: 8192
+  max_tokens_per_teacher_turn: 1024
+  max_tokens_per_student_turn: 1024
+  max_tokens_per_student_attempt: 3900
+  max_tokens_per_judge_attempt: 2048
+  number_student_attempts: 8
+  number_judge_attempts: 2
+  student_temperature: 0.6
+  student_top_p: 1.0
+  judge_temperature: 0.6
+  judge_top_p: 1.0
+  extra_penalty_for_rejected_judges: 1.0
+  format_error_penalty: -0.5
+
+cluster:
+  n_nodes: 1
+  n_gpus_per_node: 8
+  fileroot: /tmp/areal/experiments
+  name_resolve:
+    type: nfs
+    nfs_record_root: ${cluster.fileroot}/name_resolve
+
+scheduler:
+  type: local
+
+rollout:
+  backend: sglang:d4p1t1
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  tokenizer_path: ${tokenizer_path}
+  max_concurrent_rollouts: 64
+  queue_size: null
+  consumer_batch_size: ${train_dataset.batch_size}
+  max_head_offpolicyness: 2
+  pause_grace_period: 10
+  enable_rollout_tracing: false
+  scheduling_spec: ${actor.scheduling_spec}
+  use_lora: true
+  dump_to_file: true
+
+gconfig:
+  n_samples: 8
+  min_new_tokens: 0
+  max_new_tokens: ${generation.max_tokens_per_teacher_turn}
+  max_tokens: 12000
+  greedy: false
+  temperature: 1.0
+  top_p: 1.0
+  lora_name: default_lora
+
+actor:
+  backend: fsdp:d4p1t1
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: Qwen/Qwen3-8B
+  init_from_scratch: false
+  disable_dropout: true
+  gradient_checkpointing: true
+  dtype: bfloat16
+  mb_spec:
+    n_mbs: 1
+    max_tokens_per_mb: 40960
+  optimizer:
+    # Upstream uses 5e-7 for full-parameter 7B training. This config uses
+    # rank-16 LoRA, so it matches Sherpa's LoRA learning rate.
+    type: adam
+    lr: 5.0e-5
+    weight_decay: 0.0
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-8
+    lr_scheduler_type: constant
+    gradient_clipping: 1.0
+    # The same number of warmup updates as the standard Sherpa run.
+    warmup_steps_proportion: 0.001
+  eps_clip: 0.2
+  c_clip: null
+  temperature: ${gconfig.temperature}
+  reward_scaling: 1.0
+  reward_bias: 0.0
+  reward_clip: 20.0
+  # kl_ctl is PedagogicalRL's beta. It is applied as the native forward-KL term
+  # in the token loss, never as reward shaping.
+  kl_ctl: 0.001
+  ppo_n_minibatches: 1
+  recompute_logprob: true
+  use_decoupled_loss: false
+  behave_imp_weight_cap: null
+  behave_imp_weight_mode: disabled
+  reward_norm:
+    mean_level: group
+    std_level: group
+    std_unbiased: true
+    eps: 1.0e-4
+    group_size: ${gconfig.n_samples}
+  adv_norm: null
+  num_iterations: 2
+  weight_update_mode: disk
+  use_lora: ${rollout.use_lora}
+  peft_type: lora
+  lora_rank: 16
+  lora_alpha: 16
+  target_modules: [all-linear]
+  max_new_tokens: ${gconfig.max_new_tokens}
+  scheduling_spec:
+    - task_type: worker
+      port_count: 2
+      gpu: 1
+      cmd: python3 -m areal.infra.rpc.rpc_server
+      env_vars: {}
+
+# With FSDP LoRA, AReaL computes this reference pass by temporarily disabling
+# the adapter on the actor; no second model is allocated.
+ref:
+  backend: ${actor.backend}
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: ${actor.path}
+  init_from_scratch: false
+  disable_dropout: true
+  dtype: ${actor.dtype}
+  mb_spec:
+    n_mbs: 1
+    max_tokens_per_mb: 40960
+  optimizer: null
+  use_lora: false
+  scheduling_strategy:
+    type: colocation
+    target: actor
+  scheduling_spec: ${actor.scheduling_spec}
+
+critic: null
+
+sglang:
+  model_path: ${actor.path}
+  random_seed: ${seed}
+  skip_tokenizer_init: true
+  dtype: ${actor.dtype}
+  max_running_requests: 64
+  disable_radix_cache: false
+  context_length: 12000
+  mem_fraction_static: 0.50
+  enable_lora: ${actor.use_lora}
+  max_lora_rank: ${actor.lora_rank}
+  max_loaded_loras: 16
+
+train_dataset:
+  batch_size: 16
+  shuffle: true
+  drop_last: true
+  pin_memory: false
+  num_workers: 0
+  path: examples/sherpa/data/math_1.7b_8b/math_filtered
+  type: rl
+  max_length: 12000
+  scheduling_spec: null
+
+# Trained checkpoints are evaluated with the Sherpa protocol
+# (examples/sherpa/eval, config pedrl-qwen3-8b).
+valid_dataset: null
+
+saver:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: null
+  freq_steps: 25
+  freq_secs: null
+
+recover:
+  mode: auto
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: null
+  freq_steps: 25
+  freq_secs: null
+
+evaluator:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: null
+  freq_steps: null
+  freq_secs: null
+
+stats_logger:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  wandb:
+    mode: offline
+    project: pedagogical-rl
+    name: ${trial_name}
+    tags: [qwen3-8b, qwen3-1.7b, math-pass2, pedagogical-rl]

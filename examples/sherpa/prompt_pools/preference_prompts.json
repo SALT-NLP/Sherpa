@@ -1,0 +1,28 @@
+{
+  "preferences": {
+    "attempt-diagnosis": {
+      "source": "Feedback and error remediation: Metcalfe (2017), Learning from Errors; Stepwise Verification and Remediation of Student Reasoning Errors (2024).",
+      "preference": "The student wants feedback on their latest attempt.\n\nPASS if the tutor identifies a specific part of that attempt as correct, incorrect, or missing and explains why.\n\nFAIL if the tutor gives only a general judgment or moves on without addressing the attempt."
+    },
+    "causal-justification": {
+      "source": "Explanation moves in human tutoring: Chi et al. (2008), Observing Tutorial Dialogues Collaboratively.",
+      "preference": "The student wants to understand why a specific mathematical claim or step holds.\n\nPASS if the tutor directly explains why it follows by applying a relevant mathematical rule, definition, or relationship.\n\nFAIL if the tutor only states the claim, describes how to proceed, or leaves the reason implicit."
+    },
+    "subgoal-decomposition": {
+      "source": "Subgoal labeling for problem solving: Margulieux, Catrambone, and Guzdial (2016).",
+      "preference": "The student wants the problem organized around subgoals.\n\nPASS if the tutor states the current subgoal and explains how it helps reach the overall goal.\n\nFAIL if the tutor gives only a flat list of steps, states only the next operation, or solves without exposing the structure."
+    },
+    "step-demonstration": {
+      "source": "Worked-example effect in mathematics: Barbieri et al. (2023).",
+      "preference": "The student wants to watch the tutor perform one step on the current problem.\n\nPASS if the tutor carries out exactly one new step, shows the resulting intermediate state, briefly explains it, and then stops.\n\nFAIL if the tutor only describes the step, uses another example, performs multiple steps, or gives the final answer."
+    },
+    "independent-verification": {
+      "source": "Looking back and verifying a solution: Polya (1945), How to Solve It.",
+      "preference": "The student wants a previous mathematical result checked independently.\n\nPASS immediately if no previous real student message is available.\n\nOtherwise, an independent check must either derive the same result from the original problem by a different method, or test the claimed result directly against the original conditions. PASS only if the tutor completes that check and states whether it confirms or refutes the result.\n\nFAIL if the tutor only evaluates, corrects, or reuses the student's working, continues toward a new result, or asks the student to finish the check."
+    },
+    "contrastive-comparison": {
+      "source": "Contrasting cases and erroneous-example comparison: Schwartz and Bransford (1998); Alfieri et al. (2013).",
+      "preference": "The student wants two plausible local alternatives compared directly.\n\nPASS if the tutor presents two alternatives for the same decision and explains the key mathematical difference between them.\n\nFAIL if only one alternative is shown, the alternatives are unrelated, or their decisive difference is not explained."
+    }
+  }
+}

@@ -1,0 +1,288 @@
+# Sherpa main experiment: a Qwen3-8B teacher (rank-16 LoRA) trained with a
+# Qwen3-1.7B student under the four ID preferences (none, attempt diagnosis,
+# subgoal decomposition, contrastive comparison), 1500 updates on one node with
+# eight GPUs.
+#
+# GPUs: 4 for the actor (FSDP) and 4 for rollout (SGLang). The launcher
+# (examples/sherpa/scripts/run/qwen3.sh) serves the student on the rollout GPUs
+# and sets STUDENT_BASE_URL. The auxiliary model (guidance gate, adaptive gate,
+# answer judge) is the rollout model with LoRA disabled; no external API is used.
+
+experiment_name: sherpa
+trial_name: qwen3-8b
+seed: 42
+total_train_epochs: 1000
+total_train_steps: 1500
+tokenizer_path: ${actor.path}
+
+workflow: examples.sherpa.workflow.SherpaWorkflow
+eval_workflow: ${workflow}
+
+# ---------------------------------------------------------------- the method
+max_turns: 10
+teacher_response_format: non_thinking  # <reasoning>..</reasoning> then <output> or <end></end>
+enable_thinking: false                 # native model thinking of the teacher
+guidance_gate: true    # hide a turn that fails the guidance gate from the student; false skips the gate
+adaptive_gate: true    # gate each turn on the student's preference; false requires every student to be `none`
+adaptive_gate_prompts_path: examples/sherpa/prompt_pools/preference_prompts.json
+adaptive_gate_complaints_path: examples/sherpa/prompt_pools/preference_complaints.json
+adaptive_gate_retries: 3
+mask_rejected_turns: true              # false = credit every turn, episode baseline
+retest_replays: 8
+
+teacher_pre:            # private pre-solve before teaching
+  enabled: true
+  verify: true
+  attempts: 3
+  max_tokens: 4096
+
+length_retry:           # resample a teacher turn that hit the token cap
+  enabled: true
+  attempts: 3
+
+reward:                 # per-turn penalties, added after advantage normalization
+  guidance_gate_fail_penalty: 0.0
+  format_error_penalty: -0.5
+  teacher_exact_repeat_penalty: -0.5
+  adaptive_gate_fail_penalty: 0.0
+  soft_overlong:         # linear penalty over the last buffer_tokens of the turn cap
+    enabled: false
+    buffer_tokens: 512
+    max_penalty: -0.05
+
+auxiliary_model:
+  mode: self        # `api`: an OpenAI-compatible judge at base_url / model
+  base_url: ""
+  model: ""
+  api_key: EMPTY
+  enable_thinking: false
+  max_tokens: 1024
+  temperature: 0.0
+  top_p: 1.0
+  max_concurrent_calls: 32
+  answer_judge_enabled: true
+  answer_judge_max_tokens: 256
+
+# One served student, four preference profiles, drawn in equal proportions.
+student_models:
+- name: none
+  preference: none
+  base_url: ${oc.env:STUDENT_BASE_URL}
+  model: ${oc.env:STUDENT_MODEL,qwen3-1.7b}
+  api_key: ${oc.env:STUDENT_API_KEY,EMPTY}
+  weight: 0.25
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 24
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: attempt-diagnosis
+  preference: attempt-diagnosis
+  base_url: ${oc.env:STUDENT_BASE_URL}
+  model: ${oc.env:STUDENT_MODEL,qwen3-1.7b}
+  api_key: ${oc.env:STUDENT_API_KEY,EMPTY}
+  weight: 0.25
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 24
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: subgoal-decomposition
+  preference: subgoal-decomposition
+  base_url: ${oc.env:STUDENT_BASE_URL}
+  model: ${oc.env:STUDENT_MODEL,qwen3-1.7b}
+  api_key: ${oc.env:STUDENT_API_KEY,EMPTY}
+  weight: 0.25
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 24
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: contrastive-comparison
+  preference: contrastive-comparison
+  base_url: ${oc.env:STUDENT_BASE_URL}
+  model: ${oc.env:STUDENT_MODEL,qwen3-1.7b}
+  api_key: ${oc.env:STUDENT_API_KEY,EMPTY}
+  weight: 0.25
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 24
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+
+debug_trace_dir: ${cluster.fileroot}/${experiment_name}/${trial_name}/debug_traces
+debug_trace_every_n_rollouts: 10
+
+# ---------------------------------------------------------------- data
+train_dataset:
+  path: examples/sherpa/data/math_1.7b_8b/math_filtered
+  type: rl
+  batch_size: 16
+  shuffle: true
+  drop_last: true
+  max_length: 16384
+
+# Periodic evaluation is off (evaluator.freq_* are null); set a frequency to use it.
+valid_dataset:
+  path: ${train_dataset.path}
+  type: rl
+  batch_size: 16
+  shuffle: false
+  drop_last: false
+
+# ---------------------------------------------------------------- generation
+gconfig:
+  n_samples: 8
+  max_new_tokens: 1024
+  max_tokens: 24576
+  temperature: 1.0
+  top_p: 1.0
+
+eval_gconfig:
+  n_samples: 1
+  max_new_tokens: 1024
+  max_tokens: 24576
+  temperature: 0.7
+  top_p: 1.0
+
+# ---------------------------------------------------------------- resources
+cluster:
+  n_nodes: 1
+  n_gpus_per_node: 8
+  fileroot: /tmp/areal/experiments
+  name_resolve:
+    type: nfs
+    nfs_record_root: ${cluster.fileroot}/name_resolve
+
+scheduler:
+  type: local
+
+rollout:
+  backend: sglang:d4p1t1
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  tokenizer_path: ${tokenizer_path}
+  max_concurrent_rollouts: 64
+  consumer_batch_size: ${train_dataset.batch_size}
+  max_head_offpolicyness: 2
+  pause_grace_period: 10
+  dump_to_file: true
+  use_lora: true
+  scheduling_spec: ${actor.scheduling_spec}
+
+sglang:
+  model_path: ${actor.path}
+  random_seed: ${seed}
+  skip_tokenizer_init: true
+  dtype: ${actor.dtype}
+  context_length: 40960
+  mem_fraction_static: 0.5
+  max_running_requests: 32
+  disable_radix_cache: false
+  enable_lora: ${actor.use_lora}
+  max_lora_rank: ${actor.lora_rank}
+  max_loaded_loras: 16
+
+# ---------------------------------------------------------------- training
+actor:
+  backend: fsdp:d4p1t1
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: Qwen/Qwen3-8B
+  dtype: bfloat16
+  disable_dropout: true
+  gradient_checkpointing: true
+  mb_spec:
+    max_tokens_per_mb: 40960
+  use_lora: ${rollout.use_lora}
+  peft_type: lora
+  lora_rank: 16
+  lora_alpha: 16
+  target_modules: [all-linear]
+  weight_update_mode: disk
+  optimizer:
+    type: adam
+    lr: 5.0e-5
+    weight_decay: 0.0
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-8
+    lr_scheduler_type: constant
+    # Warm up over one epoch (0.001 x total_train_epochs 1000).
+    warmup_steps_proportion: 0.001
+    gradient_clipping: 1.0
+  temperature: ${gconfig.temperature}
+  max_new_tokens: ${gconfig.max_new_tokens}
+  # ReBN advantages; actor.group_baseline is derived from mask_rejected_turns.
+  advantage_estimator: rebn
+  group_baseline_leave1out: true
+  adv_norm:
+    mean_level: null
+    std_level: batch
+  ppo_n_minibatches: 2
+  eps_clip: 0.2
+  c_clip: 3.0
+  kl_ctl: 0.0
+  recompute_logprob: true
+  use_decoupled_loss: true
+  scheduling_spec:
+  - task_type: worker
+    port_count: 2
+    gpu: 1
+    cmd: python3 -m areal.infra.rpc.rpc_server
+    env_vars: {}
+
+saver:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_steps: 25
+
+recover:
+  mode: auto
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_steps: 25
+
+evaluator:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  freq_epochs: null
+  freq_steps: null
+  freq_secs: null
+
+stats_logger:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  wandb:
+    mode: offline
+    project: sherpa
+    name: ${trial_name}

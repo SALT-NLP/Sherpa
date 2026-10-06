@@ -1,0 +1,15 @@
+# Ministral-3-8B without training, with the same plain-text reply format as the
+# untrained Qwen3-8B. Served like sherpa-ministral3-8b, without the adapter.
+extends: base.yaml
+run_name: ministral3-8b
+teacher:
+  model: ministral-3-8b-instruct
+  endpoint_env: TEACHER_BASE_URL
+  key_env: TEACHER_API_KEY
+  checkpoint: Ministral-3-8B-Instruct-2512
+  adapter_env: null
+  tokenizer: mistralai/Ministral-3-8B-Instruct-2512-BF16
+  format: thinking
+  enable_thinking: false
+  request_params:
+    seed: 42

@@ -1,0 +1,15 @@
+# Qwen3-8B without training. `thinking` is the plain-text reply format (a
+# standalone <end> ends the dialogue), not native chain-of-thought.
+extends: base.yaml
+run_name: qwen3-8b
+teacher:
+  model: qwen3-8b
+  endpoint_env: TEACHER_BASE_URL
+  key_env: TEACHER_API_KEY
+  checkpoint: Qwen3-8B
+  adapter_env: null
+  tokenizer: Qwen/Qwen3-8B
+  format: thinking
+  enable_thinking: false
+  request_params:
+    seed: 42

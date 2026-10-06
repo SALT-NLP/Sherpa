@@ -1,0 +1,7 @@
+# PedagogicalRL baseline: Qwen3-8B with its LoRA adapter (TEACHER_ADAPTER).
+version: 1
+run_name: pedrl-qwen3-8b
+model: qwen3-8b
+endpoint_env: TEACHER_BASE_URL
+key_env: TEACHER_API_KEY
+adapter_env: TEACHER_ADAPTER

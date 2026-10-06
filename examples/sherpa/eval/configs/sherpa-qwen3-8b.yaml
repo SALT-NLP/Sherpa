@@ -1,0 +1,15 @@
+# Sherpa: Qwen3-8B with the trained LoRA adapter, selected per request by
+# TEACHER_ADAPTER (the path the teacher server registered it under).
+extends: base.yaml
+run_name: sherpa-qwen3-8b
+teacher:
+  model: qwen3-8b
+  endpoint_env: TEACHER_BASE_URL
+  key_env: TEACHER_API_KEY
+  checkpoint: sherpa-qwen3-8b
+  adapter_env: TEACHER_ADAPTER
+  tokenizer: Qwen/Qwen3-8B
+  format: non_thinking
+  enable_thinking: false
+  request_params:
+    seed: 42

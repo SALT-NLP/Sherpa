@@ -1,0 +1,233 @@
+# Frozen evaluation protocol: the paper's main evaluation (528 questions x seven
+# student preferences, 27B judge, draft-unverified pre-solve, 2048-token teacher
+# turns, eight re-tests). A complete config of its own that never inherits
+# training defaults. Endpoints and keys come from environment variables set by
+# the runners; the served model names are fixed here.
+experiment_name: sherpa-evaluation
+trial_name: checkpoint-evaluation
+seed: 42
+tokenizer_path: ${actor.path}
+workflow: examples.sherpa.workflow.SherpaWorkflow
+eval_workflow: ${workflow}
+max_turns: 10
+enable_thinking: false
+teacher_response_format: non_thinking
+guidance_gate: true
+adaptive_gate: true
+adaptive_gate_prompts_path: examples/sherpa/prompt_pools/preference_prompts.json
+adaptive_gate_complaints_path: examples/sherpa/prompt_pools/preference_complaints.json
+adaptive_gate_retries: 3
+retest_replays: 8
+teacher_pre:
+  enabled: true
+  verify: true
+  attempts: 3
+  max_tokens: 4096
+length_retry:
+  enabled: false
+  attempts: 3
+auxiliary_model:
+  mode: api
+  enable_thinking: false
+  base_url: ${oc.env:EVAL_AUX_URL}
+  model: qwen3.8-27b-fp8
+  api_key: ${oc.env:EVAL_AUX_KEY}
+  timeout: 120
+  max_tokens: 1024
+  temperature: 0.0
+  top_p: 1.0
+  max_concurrent_calls: 192
+  request_params:
+    seed: 42
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+  answer_judge_enabled: true
+  answer_judge_max_tokens: 256
+student_models:
+- name: none
+  preference: none
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: attempt-diagnosis
+  preference: attempt-diagnosis
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: subgoal-decomposition
+  preference: subgoal-decomposition
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: contrastive-comparison
+  preference: contrastive-comparison
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: causal-justification
+  preference: causal-justification
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: step-demonstration
+  preference: step-demonstration
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+- name: independent-verification
+  preference: independent-verification
+  base_url: ${oc.env:EVAL_STUDENT_URL}
+  model: qwen3-1.7b
+  api_key: ${oc.env:EVAL_STUDENT_KEY}
+  weight: 1.0
+  timeout: 120
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.8
+  max_concurrent_calls: 192
+  request_params:
+    extra_body:
+      top_k: 20
+      min_p: 0
+      chat_template_kwargs:
+        enable_thinking: false
+reward:
+  guidance_gate_fail_penalty: 0.0
+  format_error_penalty: -0.5
+  teacher_exact_repeat_penalty: -0.5
+  adaptive_gate_fail_penalty: 0.0
+debug_trace_dir: ''
+cluster:
+  fileroot: output/sherpa
+gconfig:
+  n_samples: 8
+  min_new_tokens: 0
+  max_new_tokens: 2048
+  max_tokens: 24576
+  greedy: false
+  temperature: 1.0
+  top_p: 1.0
+  lora_name: default_lora
+eval_gconfig:
+  n_samples: 1
+  min_new_tokens: 0
+  max_new_tokens: 2048
+  max_tokens: 24576
+  greedy: false
+  temperature: ${gconfig.temperature}
+  top_p: 1.0
+  lora_name: default_lora
+actor:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  path: ${oc.env:SHERPA_TOKENIZER,Qwen/Qwen3-8B}
+  advantage_estimator: rebn
+  # Required by the config schema; the standalone evaluator starts no engine.
+  backend: fsdp:d1p1t1
+rollout:
+  backend: sglang:d1p1t1
+sglang:
+  context_length: 40960
+train_dataset:
+  batch_size: 16
+  path: ${oc.env:SHERPA_DATASET,examples/sherpa/data/math_1.7b_8b/math_filtered}
+  type: rl
+valid_dataset:
+  batch_size: 16
+  path: ${oc.env:SHERPA_DATASET,examples/sherpa/data/math_1.7b_8b/math_filtered}
+  type: rl
+saver:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+recover:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+stats_logger:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+evaluator:
+  experiment_name: ${experiment_name}
+  trial_name: ${trial_name}
+  fileroot: ${cluster.fileroot}
+  teacher_pre_enabled: true
+  teacher_pre_verify: false
+  average_rollouts: 1
+  student_model_names: null

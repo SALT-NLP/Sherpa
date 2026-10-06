@@ -1,0 +1,7 @@
+# Qwen3-8B without training, on a server you run (see README.md).
+version: 1
+run_name: qwen3-8b
+model: qwen3-8b
+endpoint_env: TEACHER_BASE_URL
+key_env: TEACHER_API_KEY
+adapter_env: null

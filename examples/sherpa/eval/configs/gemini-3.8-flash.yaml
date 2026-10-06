@@ -1,0 +1,26 @@
+# Gemini 3.8 Flash through Google's OpenAI-compatible API. As in the paper:
+# medium reasoning, plain-text replies, the provider's own sampling and output
+# length, no seed; the Qwen3-8B tokenizer does the protocol's context accounting.
+extends: base.yaml
+run_name: gemini-3.8-flash-medium
+teacher:
+  model: gemini-3.8-flash
+  endpoint_env: GEMINI_BASE_URL
+  key_env: GEMINI_API_KEY
+  checkpoint: gemini-3.8-flash
+  adapter_env: null
+  tokenizer: Qwen/Qwen3-8B
+  format: thinking
+  enable_thinking: false
+  request_params: {}
+  provider:
+    name: gemini
+    reasoning_effort: medium
+    sampling: provider-default
+    output_limit: provider-default
+execution:
+  concurrency: 16
+  student_concurrency: 192
+  judge_concurrency: 192
+  episode_timeout_seconds: 1800
+  episode_error_retries: 1

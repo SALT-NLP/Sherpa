@@ -1,0 +1,10 @@
+# Gemini 3.8 Flash through Google's OpenAI-compatible API: medium reasoning, the
+# provider's own sampling and output length, no seed.
+version: 1
+run_name: gemini-3.8-flash-medium
+model: gemini-3.8-flash
+endpoint_env: GEMINI_BASE_URL
+key_env: GEMINI_API_KEY
+adapter_env: null
+provider:
+  reasoning_effort: medium

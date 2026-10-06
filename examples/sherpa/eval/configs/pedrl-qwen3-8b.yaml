@@ -1,0 +1,15 @@
+# PedagogicalRL baseline: Qwen3-8B with its LoRA adapter (TEACHER_ADAPTER). It was
+# trained with the same tagged reply format, native thinking off.
+extends: base.yaml
+run_name: pedrl-qwen3-8b
+teacher:
+  model: qwen3-8b
+  endpoint_env: TEACHER_BASE_URL
+  key_env: TEACHER_API_KEY
+  checkpoint: pedagogical-rl
+  adapter_env: TEACHER_ADAPTER
+  tokenizer: Qwen/Qwen3-8B
+  format: non_thinking
+  enable_thinking: false
+  request_params:
+    seed: 42

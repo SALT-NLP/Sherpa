@@ -1,0 +1,16 @@
+# Sherpa on Ministral-3-8B: the base model with the trained LoRA adapter
+# (TEACHER_ADAPTER). Serve it from the Ministral environment (SGLang 0.5.10) with
+# --skip-server-warmup; see the Sherpa README.
+extends: base.yaml
+run_name: sherpa-ministral3-8b
+teacher:
+  model: ministral-3-8b-instruct
+  endpoint_env: TEACHER_BASE_URL
+  key_env: TEACHER_API_KEY
+  checkpoint: sherpa-ministral3-8b
+  adapter_env: TEACHER_ADAPTER
+  tokenizer: mistralai/Ministral-3-8B-Instruct-2512-BF16
+  format: non_thinking
+  enable_thinking: false
+  request_params:
+    seed: 42
