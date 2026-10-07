@@ -5,7 +5,7 @@
 > through learning.*</sub>
 
 <p align="center">
-  <a href="assets/paper.pdf"><img src="https://img.shields.io/badge/arXiv-Paper-B31B1B?style=flat-square&logo=arxiv&logoColor=white&labelColor=24292F" alt="Paper"></a>
+  <a href="https://arxiv.org/abs/2610.08778"><img src="https://img.shields.io/badge/arXiv-Paper-B31B1B?style=flat-square&logo=arxiv&logoColor=white&labelColor=24292F" alt="Paper"></a>
   <a href="https://huggingface.co/collections/SALT-NLP/sherpa"><img src="https://img.shields.io/badge/Hugging%20Face-Models-FFD21E?style=flat-square&logo=huggingface&logoColor=FFD21E&labelColor=24292F" alt="Models"></a>
 </p>
 
@@ -109,3 +109,17 @@ Details and other teacher models:
 [Apache-2.0](LICENSE), as AReaL. The filtered MATH split contains problems from the
 [MATH dataset](https://github.com/hendrycks/math) (Hendrycks et al., 2021), released
 under the MIT License.
+
+## Citation
+
+```bibtex
+@misc{xu2026sherpa,
+  title         = {Sherpa: Teaching LLMs to Teach Adaptively},
+  author        = {Weixian Xu and Yanzhe Zhang and Zora Zhiruo Wang and Changyu Chen and Diyi Yang},
+  year          = {2026},
+  eprint        = {2610.08778},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url           = {https://arxiv.org/abs/2610.08778}
+}
+```
